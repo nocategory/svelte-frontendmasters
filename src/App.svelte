@@ -1,10 +1,48 @@
 <script>
+  import { onMount } from 'svelte'
   import Welcome from './screens/Welcome.svelte'
+  import { select } from './select'
   let state = 'welcome'
+  let selection;
 
-  const start = (e) => {
-    console.log(e)
+  let celebrities_promise;
+
+  const start = async (e) => {
+    const { celebs, lookup } = await celebrities_promise
+
+    selection = select(celebs, lookup, e.detail.category.slug)
+    state = 'playing'
   }
+
+  const load_celebrities = async () => {
+    const res = await fetch('https://cameo-explorer.netlify.app/celebs.json')
+    const data = await res.json()
+
+    const lookup = new Map()
+
+    data.forEach(c => {
+      lookup.set(c.id, c)
+    })
+
+    const subset = new Set()
+    data.forEach(c => {
+      if (c.reviews >= 50) {
+        subset.add(c)
+        c.similar.forEach(id => {
+          subset.add(lookup.get(id))
+        })
+      }
+    })
+
+    return {
+      celebs: Array.from(subset),
+      lookup
+    }
+  }
+
+  onMount(() => {
+    celebrities_promise = load_celebrities();
+  })
 </script>
 
 <style>
