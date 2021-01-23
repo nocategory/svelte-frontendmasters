@@ -1,5 +1,6 @@
 <script>
   import Card from '../components/Card.svelte'
+  import { sleep } from '../utils'
   export let selection
 
   const load_details = async (celeb) => {
@@ -13,13 +14,20 @@
     Promise.all([load_details(round.a), load_details(round.b)])
   )
 
+  const results = Array(selection.length)
+
   let i = 0
 
-  const submit = (celeb_a, celeb_b, sign) => {
-    const result =
+  let last_result
+
+  const submit = async (celeb_a, celeb_b, sign) => {
+    last_result =
       Math.sign(celeb_a.price - celeb_b.price) === sign ? 'right' : 'wrong'
 
-    console.log({ result })
+    await sleep(1500)
+
+    results[i] = last_result
+    last_result = null
 
     if (i < selection.length - 1) {
       i++
@@ -58,8 +66,25 @@
   {/await}
 </div>
 
-<div class="results">
-  <p>results will go here</p>
+{#if last_result}
+  <img
+    class="giant-result"
+    alt="{last_result} answer"
+    src="/icons/{last_result}.svg"
+  />
+{/if}
+
+<div
+  class="results"
+  style="grid-template-columns: repeat({results.length}, 1fr"
+>
+  {#each results as result}
+    <span class="result">
+      {#if result}
+        <img alt="{result} answer" src="/icons/{result}.svg" />
+      {/if}
+    </span>
+  {/each}
 </div>
 
 <style>
@@ -82,6 +107,39 @@
   }
   .error {
     color: red;
+  }
+
+  .giant-result {
+    position: fixed;
+    width: 50vmin;
+    height: 50vmin;
+    left: calc(50vw - 25vmin);
+    top: calc(50vh - 25vmin);
+    opacity: 0.5;
+  }
+
+  .results {
+    display: grid;
+    grid-gap: 0.2em;
+    width: 100%;
+    max-width: 320px;
+    margin: 1em auto 0 auto;
+  }
+  .result {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    padding: 0 0 100% 0;
+    transition: background 0.2s;
+    transition-delay: 0s;
+    transition-delay: 0.2s;
+  }
+
+  .result img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
   }
 
   @media (min-width: 640px) {
