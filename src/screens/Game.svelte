@@ -1,7 +1,10 @@
 <script>
+  import { createEventDispatcher } from 'svelte'
   import Card from '../components/Card.svelte'
-  import { sleep } from '../utils'
+  import { sleep, pick_random } from '../utils'
   export let selection
+
+  const dispatch = createEventDispatcher()
 
   const load_details = async (celeb) => {
     const res = await fetch(
@@ -17,8 +20,17 @@
   const results = Array(selection.length)
 
   let i = 0
-
   let last_result
+  let done = false
+
+  $: score = results.filter((x) => x === 'right').length
+
+  const pick_message = (p) => {
+    if (p < 0.5) return pick_random(['Ouch', 'Nope!', 'Not good at all!'])
+    if (p < 0.8) return pick_random(['Not bad!', "You're almost there!"])
+    if (p < 1) return pick_random(['So close!', 'Almost there!'])
+    return pick_random(['Holy MOLY!', 'YOU ROCK!'])
+  }
 
   const submit = async (celeb_a, celeb_b, sign) => {
     last_result =
@@ -32,7 +44,7 @@
     if (i < selection.length - 1) {
       i++
     } else {
-      //end game
+      done = true
     }
   }
 </script>
@@ -45,25 +57,33 @@
 </header>
 
 <div class="game-container">
-  {#await promises[i] then [a, b]}
-    <div class="game">
-      <div class="card-container">
-        <Card celeb={a} on:select={() => submit(a, b, 1)} />
-      </div>
-
-      <div>
-        <button class="same" on:click={() => submit(a, b, 0)}>
-          same price
-        </button>
-      </div>
-
-      <div class="card-container">
-        <Card celeb={b} on:select={() => submit(a, b, -1)} />
-      </div>
+  {#if done}
+    <div class="done">
+      <strong>{score}/{results.length}</strong>
+      <p>{pick_message(score / results.length)}</p>
+      <button on:click={() => dispatch('restart')}>Back to main screen</button>
     </div>
-  {:catch}
-    <p class="error">Oops! Failed to load</p>
-  {/await}
+  {:else}
+    {#await promises[i] then [a, b]}
+      <div class="game">
+        <div class="card-container">
+          <Card celeb={a} on:select={() => submit(a, b, 1)} />
+        </div>
+
+        <div>
+          <button class="same" on:click={() => submit(a, b, 0)}>
+            same price
+          </button>
+        </div>
+
+        <div class="card-container">
+          <Card celeb={b} on:select={() => submit(a, b, -1)} />
+        </div>
+      </div>
+    {:catch}
+      <p class="error">Oops! Failed to load</p>
+    {/await}
+  {/if}
 </div>
 
 {#if last_result}

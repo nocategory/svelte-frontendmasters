@@ -1,12 +1,12 @@
 <script>
-  import { onMount } from 'svelte'
+  import { onMount } from 'svelte'
   import Welcome from './screens/Welcome.svelte'
   import Game from './screens/Game.svelte'
   import { select } from './select'
   let state = 'welcome'
-  let selection;
+  let selection
 
-  let celebrities_promise;
+  let celebrities_promise
 
   const start = async (e) => {
     const { celebs, lookup } = await celebrities_promise
@@ -21,15 +21,15 @@
 
     const lookup = new Map()
 
-    data.forEach(c => {
+    data.forEach((c) => {
       lookup.set(c.id, c)
     })
 
     const subset = new Set()
-    data.forEach(c => {
+    data.forEach((c) => {
       if (c.reviews >= 50) {
         subset.add(c)
-        c.similar.forEach(id => {
+        c.similar.forEach((id) => {
           subset.add(lookup.get(id))
         })
       }
@@ -37,14 +37,22 @@
 
     return {
       celebs: Array.from(subset),
-      lookup
+      lookup,
     }
   }
 
   onMount(() => {
-    celebrities_promise = load_celebrities();
+    celebrities_promise = load_celebrities()
   })
 </script>
+
+<div class="App">
+  {#if state === 'welcome'}
+    <Welcome on:select={start} />
+  {:else}
+    <Game {selection} on:restart={() => (state = 'welcome')} />
+  {/if}
+</div>
 
 <style>
   :global(body) {
@@ -62,11 +70,3 @@
     justify-content: center;
   }
 </style>
-
-<div class="App">
-  {#if state === 'welcome'}
-  <Welcome on:select={start} />
-  {:else}
-  <Game {selection} />
-  {/if}
-</div>
