@@ -1,6 +1,10 @@
 <script>
   import Welcome from './screens/Welcome.svelte'
   let state = 'welcome'
+
+  const start = (e) => {
+    console.log(e)
+  }
 </script>
 
 <style>
@@ -22,7 +26,7 @@
 
 <div class="App">
   {#if state === 'welcome'}
-  <Welcome />
+  <Welcome on:select={start} />
   {:else}
   <p>game screen</p>
   {/if}
