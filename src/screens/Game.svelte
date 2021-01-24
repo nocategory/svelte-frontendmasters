@@ -1,16 +1,25 @@
 <script>
   import { createEventDispatcher } from 'svelte'
+  import { fly, scale, crossfade } from 'svelte/transition'
+  import * as eases from 'svelte/easing'
   import Card from '../components/Card.svelte'
-  import { sleep, pick_random } from '../utils'
+  import { sleep, pick_random, load_image } from '../utils'
   export let selection
 
   const dispatch = createEventDispatcher()
+
+  const [send, receive] = crossfade({
+    easing: eases.cubicOut,
+    duration: 300,
+  })
 
   const load_details = async (celeb) => {
     const res = await fetch(
       `https://cameo-explorer.netlify.app/celebs/${celeb.id}.json`
     )
-    return await res.json()
+    const details = await res.json()
+    await load_image(details.image)
+    return details
   }
 
   const promises = selection.map((round) =>
@@ -22,6 +31,7 @@
   let i = 0
   let last_result
   let done = false
+  let ready = true
 
   $: score = results.filter((x) => x === 'right').length
 
@@ -41,6 +51,8 @@
     results[i] = last_result
     last_result = null
 
+    await sleep(500)
+
     if (i < selection.length - 1) {
       i++
     } else {
@@ -58,14 +70,23 @@
 
 <div class="game-container">
   {#if done}
-    <div class="done">
+    <div
+      class="done"
+      in:scale={{ delay: 200, duration: 800, easing: eases.elasticOut }}
+    >
       <strong>{score}/{results.length}</strong>
       <p>{pick_message(score / results.length)}</p>
       <button on:click={() => dispatch('restart')}>Back to main screen</button>
     </div>
-  {:else}
+  {:else if ready}
     {#await promises[i] then [a, b]}
-      <div class="game">
+      <div
+        class="game"
+        in:fly={{ duration: 300, y: 20 }}
+        out:fly={{ duration: 300, y: -20 }}
+        on:outrostart={() => (ready = false)}
+        on:outroend={() => (ready = true)}
+      >
         <div class="card-container">
           <Card
             celeb={a}
@@ -101,6 +122,8 @@
     class="giant-result"
     alt="{last_result} answer"
     src="/icons/{last_result}.svg"
+    in:fly={{ x: 100, duration: 300 }}
+    out:send={{ key: i }}
   />
 {/if}
 
@@ -108,10 +131,14 @@
   class="results"
   style="grid-template-columns: repeat({results.length}, 1fr"
 >
-  {#each results as result}
+  {#each results as result, i}
     <span class="result">
       {#if result}
-        <img alt="{result} answer" src="/icons/{result}.svg" />
+        <img
+          in:receive={{ key: i }}
+          alt="{result} answer"
+          src="/icons/{result}.svg"
+        />
       {/if}
     </span>
   {/each}
