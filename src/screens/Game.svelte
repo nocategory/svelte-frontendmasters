@@ -211,7 +211,7 @@
     justify-content: center;
   }
 
-  .doner strong {
+  .done strong {
     font-size: 6em;
     font-weight: 700;
   }
